@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RBC Compass – Intern Wrapped (Mockup)</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="2"/><path d="M15.5 8.5l-2 5-5 2 2-5 5-2z" fill="#FFC72C"/></svg>
+    </div>
+    <div>RBC Compass<small>Intern Wrapped</small></div>
+  </div>
+  <div class="seg" role="tablist" aria-label="Wrapped type">
+    <button id="m-bi" class="on" role="tab">Biweekly</button>
+    <button id="m-fin" role="tab">End of term</button>
+  </div>
+</header>
+
+<main class="stage" id="stage" aria-live="polite">
+  <div class="progress" id="progress"></div>
+  <button class="tapzone l" id="tapL" aria-label="Previous"></button>
+  <button class="tapzone r" id="tapR" aria-label="Next"></button>
+  <section class="slide" id="slide"></section>
+  <div class="foot" id="foot">
+    <div class="count" id="count"></div>
+    <div class="nav">
+      <button id="prev" aria-label="Previous slide">&#8592;</button>
+      <button id="next" aria-label="Next slide">&#8594;</button>
+    </div>
+  </div>
+</main>
+<p class="hint">Tap the sides, use the arrow keys, or press the buttons.</p>
+
+<script>
+const DATA = {
+  bi: {
+    label: "Recap 4 of 8",
+    window: "Oct 24 – Nov 6",
+    title: "Your two weeks, wrapped",
+    commits: 23, prs: 6, reviews: 4,
+    langs: [["Java",52],["TypeScript",28],["Python",14],["SQL",6]],
+    projectLine: "You shipped the account-alerts retry logic and picked up TypeScript along the way.",
+    connections: 5, connLabel: "new connections",
+    people: [["PS","Priya S.","Senior Developer · Mentor",1],["MT","Marcus T.","Product Owner",0],["JL","Jordan L.","Intern, Data Analytics",0],["AK","Amara K.","Team Lead",0]],
+    goalsDone: 3, goalsTotal: 4,
+    done: [["Complete code review training","Finished Oct 28"],["Present at team stand-up","Done Nov 2"],["Meet someone outside my team","Coffee chat with Jordan"]],
+    upcoming: [["Write unit tests for alerts module","Due Nov 14"],["Ask Priya for feedback on my PR style","Reminder in 3 days"]],
+    recog: "Priya gave you a Shout-Out for “clear, calm debugging under pressure.”",
+    recogFrom: "Recognition points earned: 150",
+    badges: ["Shout-Out","Helpful Reviewer"],
+    best: "Your first production deploy",
+    conf: [3,3,4,4], confNow: 4,
+    next: [
+      ["Learning","Try the free internal course “Intro to Event-Driven Design”","It connects to the retry work you just finished. About 45 min."],
+      ["Connect","Chat with someone on the Platform Security team","Several of your recent commits touch auth flows."],
+      ["Visibility","Share a 3-minute demo at the next team sync","You mentioned wanting more speaking practice in your goals."]
+    ]
+  },
+  fin: {
+    label: "Final Wrapped",
+    window: "May 4 – Aug 21",
+    title: "Your co-op term, wrapped",
+    commits: 187, prs: 41, reviews: 36,
+    langs: [["Java",44],["TypeScript",31],["Python",17],["SQL",8]],
+    projectLine: "From your first bug fix to leading the alerts feature, you grew into an owner.",
+    connections: 24, connLabel: "connections made",
+    people: [["PS","Priya S.","Mentor",1],["MT","Marcus T.","Product Owner",0],["JL","Jordan L.","Fellow intern",0],["+21","21 others","Across 6 teams",0]],
+    goalsDone: 11, goalsTotal: 13,
+    done: [["Ship a feature end to end","Account alerts retry, live in production"],["Build a network beyond my team","24 connections, 6 teams"],["Present to senior leaders","Demo Day, Aug 14"]],
+    upcoming: [["Explore the Technology Rotational Program","Applications open in the fall"],["Stay in touch with Priya","Quarterly check-in suggested"]],
+    recog: "You earned 9 recognitions across the term, including “Intern of the Sprint.”",
+    recogFrom: "Recognition points earned: 1,250",
+    badges: ["Intern of the Sprint","Helpful Reviewer","Demo Day Presenter"],
+    best: "Demo Day in front of 80 colleagues",
+    conf: [2,3,3,3,4,4,4,5], confNow: 5,
+    next: [
+      ["Career","Explore the Technology Rotational Program","Your goals and project work line up well with its streams."],
+      ["Learning","Pick up one cloud certification before your next term","Your cloud-related commits grew every sprint."],
+      ["Community","Mentor an incoming intern next summer","You told us how much Priya’s guidance helped. Pay it forward."]
+    ]
+  }
+};
+
+const state = { mode: "bi", i: 0, rating: null, optIn: false };
+const $ = id => document.getElementById(id);
+const stage = $("stage"), slideEl = $("slide");
+const check = '<svg viewBox="0 0 12 12" fill="none"><path d="M2.5 6.5l2.3 2.3L9.5 3.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const compass = '<svg class="wm" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M15.5 8.5l-2 5-5 2 2-5 5-2z" fill="currentColor"/></svg>';
+
+function slides(d){
+  const first = state.rating ?? d.confNow;
+  return [
+    { cls:"", html:`
+      <div class="rise kicker" style="--i:0">${d.label} · ${d.window}</div>
+      <div class="spacer"></div>
+      <h1 class="rise" style="--i:1">Hi Alex,<br>${d.title}.</h1>
+      <p class="rise sub" style="--i:2">A private look at what you built, who you met and how you grew. This is just for you.</p>
+      <div class="spacer"></div>
+      <div class="rise" style="--i:3"><span class="badge">Your journey. Your voice. Your future.</span></div>
+      ${compass}` },
+
+    { cls:"light", html:`
+      <div class="rise kicker" style="--i:0">Project progress</div>
+      <h2 class="rise" style="--i:1">You made things happen.</h2>
+      <p class="rise sub" style="--i:2">${d.projectLine}</p>
+      <div class="rise" style="--i:3;margin-top:14px"><span class="big" data-count="${d.commits}">0</span> <span class="sub">commits</span></div>
+      <div class="grid3 rise" style="--i:4">
+        <div class="tile"><b data-count="${d.prs}">0</b><span>pull requests</span></div>
+        <div class="tile"><b data-count="${d.reviews}">0</b><span>reviews given</span></div>
+        <div class="tile"><b data-count="${d.langs.length}">0</b><span>languages</span></div>
+      </div>
+      <div class="bars rise" style="--i:5">
+        ${d.langs.map(l=>`<div class="bar"><div class="row"><span>${l[0]}</span><span>${l[1]}%</span></div><div class="track"><div class="fill" data-w="${l[1]}"></div></div></div>`).join("")}
+      </div>` },
+
+    { cls:"light", html:`
+      <div class="rise kicker" style="--i:0">Connections</div>
+      <h2 class="rise" style="--i:1"><span data-count="${d.connections}">0</span> ${d.connLabel}.</h2>
+      <p class="rise sub" style="--i:2">Every conversation widens your RBC network. Here are a few of the people you connected with on Compass.</p>
+      <div class="people rise" style="--i:3">
+        ${d.people.map(p=>`<div class="person"><div class="av ${p[3]?'g':''}">${p[0]}</div><div><b>${p[1]}</b><small>${p[2]}</small></div></div>`).join("")}
+      </div>` },
+
+    { cls:"light", html:`
+      <div class="rise kicker" style="--i:0">Goals</div>
+      <h2 class="rise" style="--i:1">${d.goalsDone} of ${d.goalsTotal} goals done.</h2>
+      <div class="ringwrap rise" style="--i:2">
+        <div class="ring">
+          <svg width="128" height="128" viewBox="0 0 128 128">
+            <circle cx="64" cy="64" r="54" fill="none" stroke="#D8E3EF" stroke-width="12"/>
+            <circle id="ringfg" cx="64" cy="64" r="54" fill="none" stroke="#005DAA" stroke-width="12" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3" style="transition:stroke-dashoffset 1.2s cubic-bezier(.2,.7,.2,1)" data-pct="${d.goalsDone/d.goalsTotal}"/>
+          </svg>
+          <div class="t"><div>${Math.round(d.goalsDone/d.goalsTotal*100)}%<small>complete</small></div></div>
+        </div>
+        <p class="sub">Pulled from the goals you wrote in your dashboard.</p>
+      </div>
+      <ul class="list rise" style="--i:3">
+        ${d.done.map(g=>`<li><span class="chk">${check}</span><div>${g[0]}<small>${g[1]}</small></div></li>`).join("")}
+        ${d.upcoming.map(g=>`<li><span class="clock"></span><div>${g[0]}<small>${g[1]}</small></div></li>`).join("")}
+      </ul>` },
+
+    { cls:"gold", html:`
+      <div class="rise kicker" style="--i:0">Recognition &amp; best moment</div>
+      <h2 class="rise" style="--i:1">People noticed.</h2>
+      <div class="quote rise" style="--i:2;background:rgba(255,255,255,.55);border-left-color:var(--blue)">${d.recog}<small>${d.recogFrom} · synced with RBC’s recognition program</small></div>
+      <div class="rise" style="--i:3;margin-top:16px">${d.badges.map(b=>`<span class="badge" style="background:var(--blue);color:#fff">${b}</span>`).join("")}</div>
+      <div class="spacer"></div>
+      <div class="rise" style="--i:4">
+        <div class="kicker">Your best moment</div>
+        <h2>${d.best}</h2>
+      </div>
+      <div class="spacer"></div>${compass}` },
+
+    { cls:"light", html:`
+      <div class="rise kicker" style="--i:0">Check-in</div>
+      <h2 class="rise" style="--i:1">How confident do you feel in your role right now?</h2>
+      <p class="rise sub" style="--i:2">Private to you unless you choose to share. Tap to update.</p>
+      <div class="conf rise" style="--i:3" id="conf">
+        ${[1,2,3,4,5].map(n=>`<button data-r="${n}" class="${n===first?'on':''}" aria-label="Confidence ${n} of 5">${n}</button>`).join("")}
+      </div>
+      <div class="conflabels rise" style="--i:3"><span>Still finding my feet</span><span>Very confident</span></div>
+      <div class="spark rise" style="--i:4">
+        ${spark(d.conf, first)}
+        <p>Your confidence over time. ${d.conf.length>4?"Up from 2 at the start of your term.":"Up from 3 two recaps ago."}</p>
+      </div>` },
+
+    { cls:"light", html:`
+      <div class="rise kicker" style="--i:0">AI-suggested next steps</div>
+      <h2 class="rise" style="--i:1">${state.mode==="bi"?"Your next two weeks.":"Your next chapter."}</h2>
+      <p class="rise sub" style="--i:2">Based on your goals, projects and connections. You choose what to act on.</p>
+      <div class="ai">
+        ${d.next.map((n,k)=>`<div class="aicard rise" style="--i:${3+k}"><div class="n">${k+1}</div><div><span class="tag">${n[0]}</span><br><b>${n[1]}</b><p>${n[2]}</p></div></div>`).join("")}
+      </div>` },
+
+    { cls:"", html:`
+      <div class="rise kicker" style="--i:0">All wrapped up</div>
+      <h2 class="rise" style="--i:1">Thanks for being part of the story.</h2>
+      <p class="rise sub" style="--i:2">Your Personal Wrapped is always yours. Sharing with the program is optional, and you can change your mind any time.</p>
+      <div class="privacy rise" style="--i:3">
+        <div class="top"><b>Share anonymous feedback with program leaders</b>
+          <button class="switch ${state.optIn?'on':''}" id="sw" role="switch" aria-checked="${state.optIn}" aria-label="Share anonymous feedback"></button></div>
+        <p>If on, only your confidence scores and themes are added to the Cohort Wrapped, grouped with at least 10 other interns. Never your name, commits or connections.</p>
+        <div class="note" id="note">${state.optIn?"Thank you! Your voice is helping improve the program.":""}</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="rise" style="--i:4"><span class="badge">Save as PDF</span><span class="badge">Share with my mentor</span></div>
+      ${compass}` }
+  ];
+}
+
+function spark(vals, last){
+  const v = vals.slice(0,-1).concat([last]);
+  const w=300,h=70,pad=8;
+  const pts = v.map((y,i)=>[pad+i*(w-2*pad)/(v.length-1), h-pad-(y-1)*(h-2*pad)/4]);
+  const d = pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+  const lp = pts[pts.length-1];
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="Confidence trend">
+    <path d="${d}" fill="none" stroke="#005DAA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="path"/>
+    ${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fff" stroke="#005DAA" stroke-width="2"/>`).join("")}
+    <circle cx="${lp[0]}" cy="${lp[1]}" r="6" fill="#FFC72C" stroke="#005DAA" stroke-width="2"/></svg>`;
+}
+
+function countUp(el){
+  const target = +el.dataset.count, dur = 1000, t0 = performance.now();
+  (function f(t){
+    const p = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-p,3);
+    el.textContent = Math.round(target*e);
+    if(p<1) requestAnimationFrame(f);
+  })(t0);
+}
+
+function render(){
+  const d = DATA[state.mode], list = slides(d), s = list[state.i];
+  slideEl.className = "slide " + s.cls;
+  stage.classList.toggle("light", s.cls==="light");
+  slideEl.innerHTML = s.html;
+
+  $("progress").innerHTML = list.map((_,k)=>`<span class="${k<state.i?'done':''}"><i style="width:${k===state.i?'100%':''}"></i></span>`).join("");
+  $("count").textContent = `${state.i+1} / ${list.length}`;
+  $("prev").disabled = state.i===0;
+  $("next").disabled = state.i===list.length-1;
+  $("foot").style.background = getComputedStyle(slideEl).backgroundImage.includes("255, 199") ? "#FFC72C" : (s.cls==="light" ? "#EAF2FA" : "#003A70");
+
+  slideEl.querySelectorAll("[data-count]").forEach(countUp);
+  requestAnimationFrame(()=>setTimeout(()=>{
+    slideEl.querySelectorAll(".fill").forEach(f=>f.style.width=f.dataset.w+"%");
+    const r = $("ringfg"); if(r) r.style.strokeDashoffset = 339.3*(1-r.dataset.pct);
+  },250));
+
+  const conf = $("conf");
+  if(conf) conf.addEventListener("click",e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    state.rating = +b.dataset.r;
+    conf.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+  });
+  const sw = $("sw");
+  if(sw) sw.addEventListener("click",()=>{
+    state.optIn = !state.optIn;
+    sw.classList.toggle("on",state.optIn);
+    sw.setAttribute("aria-checked",state.optIn);
+    $("note").textContent = state.optIn ? "Thank you! Your voice is helping improve the program." : "";
+  });
+}
+
+function go(n){
+  const max = slides(DATA[state.mode]).length-1;
+  const next = Math.max(0,Math.min(max,n));
+  if(next!==state.i){ state.i = next; render(); }
+}
+function setMode(m){
+  state.mode = m; state.i = 0; state.rating = null;
+  $("m-bi").classList.toggle("on",m==="bi");
+  $("m-fin").classList.toggle("on",m==="fin");
+  render();
+}
+
+$("next").onclick = ()=>go(state.i+1);
+$("prev").onclick = ()=>go(state.i-1);
+$("tapR").onclick = ()=>go(state.i+1);
+$("tapL").onclick = ()=>go(state.i-1);
+$("m-bi").onclick = ()=>setMode("bi");
+$("m-fin").onclick = ()=>setMode("fin");
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowRight"||e.key===" ") { e.preventDefault(); go(state.i+1); }
+  if(e.key==="ArrowLeft") go(state.i-1);
+});
+render();
+</script>
+</body>
+</html>
